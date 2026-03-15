@@ -7,7 +7,7 @@ import { useCart } from "@/hooks/useCart";
 import { MobileNav } from "./MobileNav";
 
 export function Header() {
-  const { itemCount } = useCart();
+  const { itemCount, openCart } = useCart();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -27,13 +27,13 @@ export function Header() {
     >
       <div className="container flex h-16 items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-1">
-          <span className="text-lg font-semibold text-black tracking-tight">
+          <span className="text-xl font-bold text-white tracking-tight">
             Trendlo
           </span>
-          <span className="h-1 w-1 rounded-full bg-brand" />
+          <span className="h-1.5 w-1.5 rounded-full bg-brand" />
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium text-black md:flex">
+        <nav className="hidden items-center gap-6 text-sm font-medium text-gray-300 md:flex">
           <Link
             href="/"
             className="transition-colors hover:text-brand"
@@ -55,8 +55,8 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/cart"
+          <button
+            onClick={() => openCart()}
             className="relative flex h-9 w-9 items-center justify-center rounded-full border border-dark-border text-white transition-colors hover:border-brand hover:text-brand"
           >
             <ShoppingBag className="h-4 w-4" />
@@ -65,7 +65,7 @@ export function Header() {
                 {itemCount}
               </span>
             )}
-          </Link>
+          </button>
 
           <button
             type="button"

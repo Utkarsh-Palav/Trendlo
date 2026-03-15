@@ -15,7 +15,7 @@ export default async function HomePage() {
       <section className="bg-dark">
         <div className="container grid gap-10 py-14 md:grid-cols-2 md:items-center">
           <div className="order-2 space-y-5 md:order-1">
-            <span className="inline-flex items-center rounded-full bg-[#111827] px-3 py-1 text-xs font-medium text-white">
+            <span className="inline-flex items-center rounded-full bg-[#111827] px-3 py-1 text-xs font-medium text-brand">
               New Arrivals ✦
             </span>
             <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl lg:text-5xl">
@@ -52,7 +52,7 @@ export default async function HomePage() {
                   className="object-cover"
                 />
               </div>
-              <div className="mt-4 flex items-center justify-between text-xs text-gray-300">
+              <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-300">
                 <span>Same‑day dispatch on all orders</span>
                 <CountdownTimer minutes={45} />
               </div>

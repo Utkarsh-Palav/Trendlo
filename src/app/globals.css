@@ -43,6 +43,16 @@ button {
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-brand: #FF6B35;
+  --color-brand-light: #FF8C5A;
+  --color-brand-dark: #E55A24;
+  --color-dark: #0F0F0F;
+  --color-dark-surface: #1A1A1A;
+  --color-dark-border: #2A2A2A;
+  --color-light: #F8F7F4;
+  --color-light-surface: #FFFFFF;
+  --color-light-border: #E5E7EB;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
