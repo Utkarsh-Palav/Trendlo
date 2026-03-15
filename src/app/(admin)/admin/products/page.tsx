@@ -6,11 +6,19 @@ import { toggleProductActive, updateProductPrice, createDiscountCode } from '@/a
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 import type { Product } from '@/types'
 
+// interface CJSearchResult {
+//     pid: string
+//     productNameEn: string
+//     sellPrice: number
+//     productImageUrl: string
+// }
+
 interface CJSearchResult {
     pid: string
     productNameEn: string
     sellPrice: number
-    productImageUrl: string
+    productImage: string
+    productImageSet?: Array<{ imageUrl: string }>
 }
 
 interface DiscountCode {
@@ -158,10 +166,10 @@ export default function ProductsAdminPage() {
                             return (
                                 <div key={p.pid} className="border border-[#E5E7EB] rounded-xl overflow-hidden">
                                     <div className="aspect-square bg-[#F8F7F4] relative">
-                                        {p.productImageUrl && (
+                                        {p.productImage && (
                                             // eslint-disable-next-line @next/next/no-img-element
                                             <img
-                                                src={p.productImageUrl}
+                                                src={p.productImage}
                                                 alt={p.productNameEn}
                                                 className="w-full h-full object-cover"
                                             />

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import {
     LayoutDashboard, ShoppingCart, Package,
@@ -17,22 +17,29 @@ const NAV = [
 
 export default function Sidebar() {
     const pathname = usePathname()
-    const router = useRouter()
     const [open, setOpen] = useState(false)
+    const [signingOut, setSigningOut] = useState(false)
 
     async function handleSignOut() {
-        const supabase = createBrowserClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        )
-        await supabase.auth.signOut()
-        router.push('/admin/login')
-        router.refresh()
+        setSigningOut(true)
+        try {
+            const supabase = createBrowserClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            )
+            await supabase.auth.signOut()
+        } catch (err) {
+            console.error('Sign out error:', err)
+        } finally {
+            // Hard redirect — clears all client state and forces middleware
+            // to re-evaluate the session (which is now gone)
+            window.location.href = '/admin/login'
+        }
     }
 
     return (
         <>
-            {/* Mobile hamburger — positioned so it doesn't overlap page title */}
+            {/* Mobile hamburger */}
             <button
                 onClick={() => setOpen(true)}
                 className="lg:hidden fixed top-4 left-4 z-50 bg-white border border-[#E5E7EB]
@@ -42,7 +49,7 @@ export default function Sidebar() {
                 <Menu size={20} className="text-[#374151]" />
             </button>
 
-            {/* Mobile overlay */}
+            {/* Mobile backdrop */}
             {open && (
                 <div
                     className="lg:hidden fixed inset-0 bg-black/40 z-40"
@@ -66,12 +73,13 @@ export default function Sidebar() {
                     <button
                         onClick={() => setOpen(false)}
                         className="lg:hidden text-[#9CA3AF] hover:text-[#374151] p-1"
+                        aria-label="Close menu"
                     >
                         <X size={18} />
                     </button>
                 </div>
 
-                {/* Nav */}
+                {/* Nav links */}
                 <nav className="flex-1 px-3 py-4 space-y-1">
                     {NAV.map(({ href, label, icon: Icon }) => {
                         const active = pathname === href
@@ -98,11 +106,13 @@ export default function Sidebar() {
                 <div className="px-3 py-4 border-t border-[#E5E7EB]">
                     <button
                         onClick={handleSignOut}
+                        disabled={signingOut}
                         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm
-              text-[#374151] hover:bg-[#FFF3EE] hover:text-[#FF6B35] transition-colors font-medium"
+              text-[#374151] hover:bg-[#FFF3EE] hover:text-[#FF6B35]
+              transition-colors font-medium disabled:opacity-50"
                     >
                         <LogOut size={18} />
-                        Sign Out
+                        {signingOut ? 'Signing out...' : 'Sign Out'}
                     </button>
                 </div>
             </aside>

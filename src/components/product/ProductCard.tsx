@@ -9,6 +9,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const primaryImage = product.images[0];
+  console.log(product);
 
   const hasCompare =
     product.compare_price != null && product.compare_price > product.price;

@@ -41,7 +41,7 @@ export default function RootLayout({
         />
         <link rel="preconnect" href="https://img.cjdropshipping.com" />
       </head>
-      <body className={`${inter.variable} font-sans min-h-screen antialiased`} suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans min-h-screen antialiased overflow-x-hidden`} suppressHydrationWarning>
         {children}
       </body>
     </html>

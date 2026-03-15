@@ -21,10 +21,11 @@ export function Header() {
   }, []);
 
   return (
-    <header
-      className="sticky top-0 z-40 border-b border-dark-border bg-dark/95 backdrop-blur"
-      data-scrolled={scrolled}
-    >
+    <>
+      <header
+        className="sticky top-0 z-40 border-b border-dark-border bg-dark/95 backdrop-blur"
+        data-scrolled={scrolled}
+      >
       <div className="container flex h-16 items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-1">
           <span className="text-xl font-bold text-white tracking-tight">
@@ -76,8 +77,9 @@ export function Header() {
           </button>
         </div>
       </div>
-      <MobileNav open={open} onClose={() => setOpen(false)} />
     </header>
+      <MobileNav open={open} onClose={() => setOpen(false)} />
+    </>
   );
 }
 

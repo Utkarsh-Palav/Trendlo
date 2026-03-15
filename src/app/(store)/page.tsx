@@ -15,7 +15,7 @@ export default async function HomePage() {
       <section className="bg-dark">
         <div className="container grid gap-10 py-14 md:grid-cols-2 md:items-center">
           <div className="order-2 space-y-5 md:order-1">
-            <span className="inline-flex items-center rounded-full bg-[#111827] px-3 py-1 text-xs font-medium text-brand">
+            <span className="inline-flex items-center rounded-full bg-[#1F2937] px-3 py-1 text-xs font-medium text-white shadow-sm">
               New Arrivals ✦
             </span>
             <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl lg:text-5xl">
@@ -35,7 +35,7 @@ export default async function HomePage() {
               </Link>
               <Link
                 href="/products"
-                className="inline-flex items-center justify-center rounded-lg border border-brand px-8 py-3 text-sm font-medium text-brand transition hover:bg-[#1F2937]"
+                className="inline-flex items-center justify-center rounded-lg border border-[#374151] bg-[#1F2937] px-8 py-3 text-sm font-medium text-white transition hover:bg-[#374151]"
               >
                 View All Products
               </Link>
@@ -187,7 +187,7 @@ export default async function HomePage() {
           </div>
           <Link
             href="/products"
-            className="inline-flex items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-medium text-white transition hover:bg-white hover:text-gray-900"
+            className="inline-flex items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-medium text-white transition"
           >
             Shop Now
           </Link>

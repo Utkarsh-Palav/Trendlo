@@ -1,39 +1,50 @@
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-import type { Database } from "./types";
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
-export async function createServerSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+export async function createClient() {
+  const cookieStore = await cookies()
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      "[Trendlo] Supabase server client is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
-    );
-  }
-
-  const cookieStore = await cookies();
-
-  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Server Component — cookie setting is handled by middleware
+          }
+        },
       },
-      set() {
-        // Next.js App Router manages setting cookies via middleware / responses.
-      },
-      remove() {
-        // No-op – handled via responses when needed.
-      },
-    },
-  });
+    }
+  )
 }
 
-export async function getAdminSession() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session;
-}
+// export async function createServiceClient() {
+//   const cookieStore = await cookies()
 
+//   return createServerClient(
+//     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+//     process.env.SUPABASE_SERVICE_ROLE_KEY!,
+//     {
+//       cookies: {
+//         getAll() {
+//           return cookieStore.getAll()
+//         },
+//         setAll(cookiesToSet) {
+//           try {
+//             cookiesToSet.forEach(({ name, value, options }) =>
+//               cookieStore.set(name, value, options)
+//             )
+//           } catch { }
+//         },
+//       },
+//     }
+//   )
+// }

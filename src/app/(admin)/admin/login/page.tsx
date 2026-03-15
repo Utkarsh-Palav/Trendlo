@@ -34,14 +34,14 @@ export default function AdminLoginPage() {
             return
         }
 
-        router.push('/admin')
-        router.refresh()
+        // Use window.location for a hard redirect so the middleware
+        // reads the fresh session cookie correctly on the next request
+        window.location.href = '/admin'
     }
 
     return (
         <div className="min-h-screen bg-[#F8F7F4] flex items-center justify-center px-4">
             <div className="w-full max-w-sm">
-                {/* Logo */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center gap-1 mb-2">
                         <span className="text-2xl font-semibold text-[#111827]">Trendlo</span>
@@ -50,7 +50,6 @@ export default function AdminLoginPage() {
                     <p className="text-[#9CA3AF] text-sm">Admin Dashboard</p>
                 </div>
 
-                {/* Card */}
                 <div className="bg-white border border-[#E5E7EB] rounded-2xl p-8">
                     <h1 className="text-[#111827] text-xl font-semibold mb-6">Sign in</h1>
 
@@ -98,11 +97,7 @@ export default function AdminLoginPage() {
                 hover:bg-[#E55A24] disabled:opacity-50 transition-colors
                 flex items-center justify-center gap-2"
                         >
-                            {loading ? (
-                                <LoadingSpinner size="sm" color="white" />
-                            ) : (
-                                <Lock size={16} />
-                            )}
+                            {loading ? <LoadingSpinner size="sm" color="white" /> : <Lock size={16} />}
                             {loading ? 'Signing in...' : 'Sign In'}
                         </button>
                     </form>

@@ -1,54 +1,56 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient } from '@supabase/ssr'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+export async function middleware(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request })
 
-  // Allow non-admin routes and the admin login route
-  if (!pathname.startsWith("/admin") || pathname === "/admin/login") {
-    return NextResponse.next();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  // IMPORTANT: Always call getUser() to refresh the session cookie
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { pathname } = request.nextUrl
+
+  // If visiting any /admin route (except login) without a session → redirect to login
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin/login'
+      return NextResponse.redirect(url)
+    }
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    // If Supabase is not configured, fail closed for admin
-    const loginUrl = new URL("/admin/login", req.url);
-    loginUrl.searchParams.set("redirectedFrom", pathname);
-    return NextResponse.redirect(loginUrl);
+  // If already logged in and visiting login page → redirect to dashboard
+  if (pathname === '/admin/login' && user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/admin'
+    return NextResponse.redirect(url)
   }
 
-  const response = NextResponse.next();
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        return req.cookies.get(name)?.value;
-      },
-      set(name: string, value: string, options: any) {
-        response.cookies.set(name, value, options);
-      },
-      remove(name: string, options: any) {
-        response.cookies.set(name, "", { ...options, maxAge: 0 });
-      },
-    },
-  });
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    const loginUrl = new URL("/admin/login", req.url);
-    loginUrl.searchParams.set("redirectedFrom", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  return response;
+  return supabaseResponse
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
-};
-
+  matcher: [
+    '/admin/:path*',
+  ],
+}
