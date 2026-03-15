@@ -18,7 +18,6 @@ export async function GET(req: NextRequest) {
     }
 
     const products = await searchProducts(q, page)
-    console.log(products)
     return NextResponse.json({ products })
   } catch (err) {
     console.error('CJ products search error:', err)

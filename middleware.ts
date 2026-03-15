@@ -2,6 +2,24 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  console.log('MIDDLEWARE:', pathname)
+
+  const isAdminRoute = pathname.startsWith('/admin')
+  const isLoginPage = pathname === '/admin/login'
+  const isCJRoute = pathname.startsWith('/api/cj/')
+
+  // Only run auth check on admin and CJ API routes
+  if (!isAdminRoute && !isCJRoute) {
+    return NextResponse.next()
+  }
+
+  // Login page — skip auth check
+  if (isLoginPage) {
+    return NextResponse.next()
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -25,22 +43,24 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Always call getUser() to refresh the session cookie
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
+  console.log('MIDDLEWARE user:', user?.email ?? 'not authenticated')
 
-  // If visiting any /admin route (except login) without a session → redirect to login
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
-    if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/admin/login'
-      return NextResponse.redirect(url)
+  if (!user) {
+    console.log('MIDDLEWARE: blocking', pathname)
+
+    if (isCJRoute) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const url = request.nextUrl.clone()
+    url.pathname = '/admin/login'
+    return NextResponse.redirect(url)
   }
 
-  // If already logged in and visiting login page → redirect to dashboard
-  if (pathname === '/admin/login' && user) {
+  // Redirect logged-in user away from login page
+  if (isLoginPage && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin'
     return NextResponse.redirect(url)
@@ -51,6 +71,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/admin',
     '/admin/:path*',
+    '/api/cj/:path*',
   ],
 }

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
 import {
     LayoutDashboard, ShoppingCart, Package,
     LogOut, Menu, X,
@@ -23,16 +22,14 @@ export default function Sidebar() {
     async function handleSignOut() {
         setSigningOut(true)
         try {
-            const supabase = createBrowserClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-            )
-            await supabase.auth.signOut()
+            // Step 1 — call server route to clear server-side cookie
+            await fetch('/api/auth/signout', { method: 'POST' })
         } catch (err) {
             console.error('Sign out error:', err)
         } finally {
-            // Hard redirect — clears all client state and forces middleware
-            // to re-evaluate the session (which is now gone)
+            // Step 2 — hard redirect to login
+            // window.location.href forces a full page reload so the
+            // middleware sees the cleared cookie on the very next request
             window.location.href = '/admin/login'
         }
     }
@@ -42,8 +39,8 @@ export default function Sidebar() {
             {/* Mobile hamburger */}
             <button
                 onClick={() => setOpen(true)}
-                className="lg:hidden fixed top-4 left-4 z-50 bg-white border border-[#E5E7EB]
-          rounded-lg p-2.5 shadow-sm"
+                className="lg:hidden fixed top-4 left-4 z-50 bg-white border
+          border-[#E5E7EB] rounded-lg p-2.5 shadow-sm"
                 aria-label="Open menu"
             >
                 <Menu size={20} className="text-[#374151]" />
@@ -59,15 +56,18 @@ export default function Sidebar() {
 
             {/* Sidebar */}
             <aside
-                className={`fixed top-0 left-0 h-full w-60 bg-white border-r border-[#E5E7EB]
-          flex flex-col z-50 transition-transform duration-300
-          lg:translate-x-0
+                className={`fixed top-0 left-0 h-full w-60 bg-white border-r
+          border-[#E5E7EB] flex flex-col z-50 transition-transform
+          duration-300 lg:translate-x-0
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
             >
                 {/* Logo */}
-                <div className="flex items-center justify-between px-5 py-5 border-b border-[#E5E7EB]">
+                <div className="flex items-center justify-between px-5 py-5
+          border-b border-[#E5E7EB]">
                     <div className="flex items-center gap-1">
-                        <span className="text-lg font-semibold text-[#111827]">Trendlo</span>
+                        <span className="text-lg font-semibold text-[#111827]">
+                            Trendlo
+                        </span>
                         <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B35]" />
                     </div>
                     <button
@@ -88,8 +88,8 @@ export default function Sidebar() {
                                 key={href}
                                 href={href}
                                 onClick={() => setOpen(false)}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
-                  transition-colors font-medium
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg
+                  text-sm transition-colors font-medium
                   ${active
                                         ? 'bg-[#FFF3EE] text-[#FF6B35] border-l-[3px] border-[#FF6B35] pl-[9px]'
                                         : 'text-[#374151] hover:bg-[#F8F7F4] hover:text-[#FF6B35]'
@@ -107,8 +107,8 @@ export default function Sidebar() {
                     <button
                         onClick={handleSignOut}
                         disabled={signingOut}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm
-              text-[#374151] hover:bg-[#FFF3EE] hover:text-[#FF6B35]
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg
+              text-sm text-[#374151] hover:bg-[#FFF3EE] hover:text-[#FF6B35]
               transition-colors font-medium disabled:opacity-50"
                     >
                         <LogOut size={18} />

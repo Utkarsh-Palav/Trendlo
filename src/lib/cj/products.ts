@@ -91,8 +91,6 @@ export async function searchProducts(
       allProducts.push(...productList)
     }
 
-    console.log(`CJ search "${keyword}" returned ${allProducts.length} products`)
-
     return allProducts.map(p => ({
       pid: p.id,
       productNameEn: p.nameEn,
@@ -204,11 +202,6 @@ export async function importProductToDB(
     alt: product.productNameEn,
     position: i,
   }))
-
-  console.log(`Importing "${product.productNameEn}" with ${images.length} images`)
-  if (images.length > 0) {
-    console.log('First image URL:', images[0].url)
-  }
 
   // Use variants from product detail directly
   // They are already embedded in the product/query response
