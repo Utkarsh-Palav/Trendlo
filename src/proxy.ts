@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   console.log('MIDDLEWARE:', pathname)
@@ -12,11 +12,6 @@ export async function middleware(request: NextRequest) {
 
   // Only run auth check on admin and CJ API routes
   if (!isAdminRoute && !isCJRoute) {
-    return NextResponse.next()
-  }
-
-  // Login page — skip auth check
-  if (isLoginPage) {
     return NextResponse.next()
   }
 
@@ -54,9 +49,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const url = request.nextUrl.clone()
-    url.pathname = '/admin/login'
-    return NextResponse.redirect(url)
+    if (!isLoginPage) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin/login'
+      return NextResponse.redirect(url)
+    }
   }
 
   // Redirect logged-in user away from login page

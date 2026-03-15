@@ -24,16 +24,12 @@ export async function POST() {
 
     await supabase.auth.signOut()
 
-    // Delete all sb- cookies explicitly
-    const response = NextResponse.json({ success: true })
+    // Delete all sb- cookies explicitly using cookies API
     cookieStore.getAll().forEach(cookie => {
         if (cookie.name.startsWith('sb-')) {
-            response.cookies.set(cookie.name, '', {
-                expires: new Date(0),
-                path: '/',
-            })
+            cookieStore.delete(cookie.name)
         }
     })
 
-    return response
+    return NextResponse.json({ success: true })
 }

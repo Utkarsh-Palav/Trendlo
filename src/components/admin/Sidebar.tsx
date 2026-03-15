@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { createBrowserClient } from '@supabase/ssr'
 import { usePathname } from 'next/navigation'
 import {
     LayoutDashboard, ShoppingCart, Package,
@@ -22,14 +23,15 @@ export default function Sidebar() {
     async function handleSignOut() {
         setSigningOut(true)
         try {
-            // Step 1 — call server route to clear server-side cookie
-            await fetch('/api/auth/signout', { method: 'POST' })
+            const supabase = createBrowserClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            )
+            await supabase.auth.signOut()
         } catch (err) {
             console.error('Sign out error:', err)
         } finally {
-            // Step 2 — hard redirect to login
-            // window.location.href forces a full page reload so the
-            // middleware sees the cleared cookie on the very next request
+            // Hard redirect to login so the middleware runs with cleared cookies
             window.location.href = '/admin/login'
         }
     }
