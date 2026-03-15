@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Trendlo — Dropshipping Store
 
-## Getting Started
+Production-ready dropshipping store built with Next.js 16.1.6, Supabase,
+Razorpay, CJ Dropshipping, and Resend.
 
-First, run the development server:
+## Setup Guide
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Step 1 — Supabase
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Go to supabase.com → New Project → choose Singapore region
+2. Dashboard → SQL Editor → paste supabase/schema.sql → Run
+3. Also run the two helper functions:
+   - increment_discount_uses
+   - increment_sold_count
+4. Settings → API → copy URL, anon key, service_role key → paste in .env.local
+5. Auth → Settings → disable email confirmations
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Step 2 — Razorpay
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. razorpay.com → Sign up → complete KYC with PAN + bank (24–48 hrs)
+2. Settings → API Keys → Generate → copy Key ID + Secret → .env.local
+3. Enable: UPI, cards, netbanking, wallets
+4. Start with Test Mode — switch to Live only after full testing
 
-## Learn More
+### Step 3 — CJ Dropshipping
 
-To learn more about Next.js, take a look at the following resources:
+1. cjdropshipping.com → Register free account
+2. Developer Center → Create application
+3. Copy API email + password → .env.local as CJ_EMAIL and CJ_PASSWORD
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Step 4 — Resend
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. resend.com → Sign up → Add Domain → trendlo.me
+2. Add DNS records shown (TXT + MX)
+3. API Keys → Create key → RESEND_API_KEY in .env.local
+4. Set RESEND_FROM_EMAIL=orders@trendlo.me
 
-## Deploy on Vercel
+### Step 5 — Deploy to Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Push to GitHub:
+   git init && git add . && git commit -m "Initial commit" && git push
+2. vercel.com → Import project → connect repo
+3. Add all env vars from .env.local to Vercel dashboard
+4. Generate CRON_SECRET: openssl rand -hex 16
+5. Deploy → visit trendlo.me
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Step 6 — Connect trendlo.me domain
+
+1. Vercel → project → Settings → Domains → add trendlo.me
+2. Add DNS records in your .me domain registrar
+3. Wait 10–30 minutes → HTTPS auto-configured
+
+### Step 7 — Import your first product
+
+1. Go to trendlo.me/admin → sign in
+2. Products → search CJ (try: gadget, wireless, home)
+3. Find your hero product → Import
+4. Edit price if needed (default is 3x markup)
+5. Toggle active → visit trendlo.me homepage
+
+### Step 8 — Create influencer discount code
+
+1. Admin → Products → Discount Codes → Create New
+2. Code: FRIEND10, Type: percent, Value: 10, Ref: influencer_friend
+3. Send your friend:
+   trendlo.me/products/[slug]?utm_source=instagram&utm_campaign=launch&ref=FRIEND10
+
+### Step 9 — Test full purchase flow
+
+1. Add product to cart → checkout
+2. Use Razorpay test card: 4111 1111 1111 1111
+3. Verify: order in /admin, confirmation email received,
+   CJ order placed, UTM source saved in order
+
+### Step 10 — Go live checklist
+
+- [ ] Switch Razorpay to LIVE mode
+- [ ] Add real Trendlo logo to /public/logo.png
+- [ ] Add real OG image to /public/og-image.jpg
+- [ ] Add hero product image to /public/hero-product.png
+- [ ] Write real product descriptions after importing
+- [ ] Test on real Android + iPhone device
+- [ ] Post first Instagram Reel with UTM link
+- [ ] Check admin dashboard next morning for UTM attribution
+
+## Environment Variables
+
+See .env.local.example for all required variables.
+
+## Tech Stack
+
+- Next.js 16.1.6 (App Router, Turbopack)
+- React 19.2
+- Supabase (PostgreSQL)
+- Razorpay (payments)
+- CJ Dropshipping (supplier)
+- Resend (email)
+- Tailwind CSS v4 + shadcn/ui
+- Vercel (hosting)

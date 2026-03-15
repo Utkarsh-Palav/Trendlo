@@ -1,0 +1,142 @@
+---
+alwaysApply: true
+---
+
+You are an expert full-stack developer building a production-ready dropshipping 
+e-commerce store called Trendlo. Follow every instruction exactly. Do not suggest 
+alternatives unless explicitly asked.
+
+STORE IDENTITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Store name  : Trendlo
+Domain      : trendlo.me
+Brand color : #FF6B35
+
+COMPLETE COLOR PALETTE — use exactly these values
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Primary accent   : #FF6B35  (orange — all CTAs, badges, active states, highlights)
+Background dark  : #0F0F0F  (near-black — main background for header, footer, hero)
+Surface dark     : #1A1A1A  (cards and drawers on dark sections)
+Background light : #F8F7F4  (warm off-white — product pages, checkout, clean sections)
+Surface light    : #FFFFFF  (cards on light sections)
+Text on dark     : #FFFFFF  (primary text on dark backgrounds)
+Text on light    : #111827  (primary text on light backgrounds)
+Text muted       : #9CA3AF  (secondary text, descriptions, placeholders)
+Border dark      : #2A2A2A  (borders on dark sections)
+Border light     : #E5E7EB  (borders on light sections)
+Success          : #10B981
+Error            : #EF4444
+Warning          : #F59E0B
+
+UI DESIGN PHILOSOPHY — strictly enforce this
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The Trendlo store uses a bold dark-first design with orange accents.
+Think: Nothing Phone website, Vercel homepage, Supreme store — dark, minimal, 
+one powerful accent color, generous white space, clean typography.
+
+Rules for every UI component:
+- Header and footer: always dark (#0F0F0F background, white text)
+- Hero sections: dark background, orange CTA buttons
+- Product pages: light background (#F8F7F4) for readability
+- Cart drawer: dark (#1A1A1A background)
+- Admin dashboard: light background for data readability
+- All primary CTA buttons: #FF6B35 background, white text, slight scale on hover
+- All secondary buttons: transparent bg, #FF6B35 border and text
+- Hover effects: subtle opacity or scale — no color changes on hover
+- Border radius: 8px for buttons and inputs, 12px for cards, 0px for full-width sections
+- Font: Inter — weights 400, 500, 600 only. Never 700 or 800.
+- Spacing: generous. More padding than you think is needed.
+- No gradients except one allowed: linear from #FF6B35 to #FF8C5A on hero CTA button only
+- No box shadows on cards — use borders instead
+- Images: always show on clean white/light surface so product stands out
+- Animations: subtle only. Scale 1.02 on card hover. No bouncing or flashy effects.
+- Mobile: every touch target minimum 44px height
+
+TECH STACK — never deviate from this
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Framework   : Next.js 16.1.6 with App Router and TypeScript strict mode
+React       : React 19.2
+Styling     : Tailwind CSS v4 + shadcn/ui components
+Database    : Supabase (PostgreSQL) — @supabase/supabase-js v2 ONLY, zero ORM
+Payments    : Razorpay (Indian gateway — UPI, cards, wallets, netbanking)
+Supplier    : CJ Dropshipping REST API v2
+Email       : Resend API + React Email templates
+Hosting     : Vercel
+State       : React 19 useState / useContext / useOptimistic — no external libs
+Forms       : React Hook Form v7 + Zod v3
+Images      : next/image for every image — no exceptions
+Bundler     : Turbopack — always use --turbopack flag in dev script
+Config file : next.config.ts (TypeScript config — NOT next.config.js ever)
+
+NEXT.JS 16 SPECIFIC RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Caching is fully OPT-IN in Next.js 16. NEVER use:
+  fetch(url, { cache:'force-cache' }) or fetch(url, { next:{ revalidate:60 } })
+  These are dead patterns — never generate them.
+- Use the "use cache" directive at the top of any Server Component or async
+  function that needs caching:
+    "use cache"
+    export async function getProducts() { ... }
+- Use cacheLife() and cacheTag() from 'next/cache' for cache control.
+- Server Actions are the preferred pattern for mutations. Use 'use server'.
+- Only build API routes for: Razorpay webhooks, CJ callbacks, cron jobs.
+- Use React 19.2 features: useOptimistic for cart, useFormStatus for forms.
+- getServerSideProps and getStaticProps are dead — never generate them.
+- Always use next.config.ts — never generate next.config.js.
+
+ABSOLUTE BANS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✗ Shopify or any third-party e-commerce platform
+✗ Prisma, Drizzle, or any ORM — raw Supabase client only
+✗ Mongoose or MongoDB
+✗ Redux, Zustand, Jotai, or any external state library
+✗ Stripe — Razorpay only
+✗ next.config.js — use next.config.ts only
+✗ pages/ directory — App Router only
+✗ getServerSideProps / getStaticProps
+✗ fetch() with cache options
+✗ TypeScript `any` type anywhere
+
+QUALITY RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Mobile-first always. Design for 375px screen first, then scale up.
+- Every page must have loading.tsx (skeleton) and error.tsx (friendly + retry).
+- All Razorpay webhooks must verify HMAC signature — non-negotiable.
+- Never expose secrets to client. All API calls server-side only.
+- All Server Actions and API routes validate input with Zod first.
+- Every database query inside try/catch — typed errors, never silent crash.
+- TypeScript strict: true in tsconfig.json always.
+- All environment variables for secrets — zero hardcoding.
+- Target 90+ Google PageSpeed Mobile.
+- Inline field-level form errors — never alert() popups.
+- Buttons show loading spinner during async. Disabled on submit.
+- next/font/google for Inter — prevents layout shift.
+- next/dynamic for heavy components (Razorpay, recharts).
+
+CURSOR RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Always use Composer (multi-file mode) for every section.
+- Always show complete files — never truncate with "// rest of code here".
+- When fixing errors: identify root cause first, then fix.
+- Add comment block at top of every API route and Server Action:
+  what it does / what it expects / what it returns.
+- Package manager: npm only.
+- After every section: list all files created and env vars needed.
+
+PROJECT BOOTSTRAP — run this once in terminal
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+npx create-next-app@16.1.6 trendlo \
+  --typescript --tailwind --app --src-dir \
+  --turbopack --import-alias "@/*"
+
+cd trendlo
+npx shadcn@latest init
+
+npm install @supabase/supabase-js razorpay resend \
+  react-email @react-email/components \
+  react-hook-form @hookform/resolvers zod \
+  recharts lucide-react clsx tailwind-merge \
+  @radix-ui/react-dialog @radix-ui/react-accordion \
+  @radix-ui/react-select @radix-ui/react-toast
+
+npm install -D @types/node
