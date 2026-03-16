@@ -5,6 +5,24 @@ import type { Product } from '@/types'
 
 const CJ_BASE = 'https://developers.cjdropshipping.com/api2.0/v1'
 
+// CJ returns all prices in USD — convert to INR before storing
+const USD_TO_INR = 83.5
+
+function usdToInr(usd: number): number {
+  return Math.round(usd * USD_TO_INR)
+}
+
+function parseCJPrice(price: number | string): number {
+  if (typeof price === 'number') return price
+  if (typeof price === 'string') {
+    // Handle price range like "8.79-9.50" — take the lower value
+    const first = price.split('-')[0]
+    const parsed = parseFloat(first)
+    return isNaN(parsed) ? 0 : parsed
+  }
+  return 0
+}
+
 interface CJProductRaw {
   id: string
   nameEn: string
@@ -26,34 +44,20 @@ interface CJProductDetail {
   pid: string
   productNameEn: string
   sellPrice: number | string
-  // productImage is a JSON STRING containing an array of URLs
   productImage: string
-  // productImageSet is a single string URL (the main/cover image)
   productImageSet: string
-  // bigImage is another single URL fallback
   bigImage?: string
   description?: string
   productWeight?: number
-  // variants come directly in the detail response
   variants?: CJVariantFromDetail[]
 }
 
 export interface CJSearchProduct {
   pid: string
   productNameEn: string
-  sellPrice: number
+  sellPrice: number       // in USD (for display in admin search results)
+  sellPriceINR: number    // in INR (what gets stored)
   productImage: string
-}
-
-function parseCJPrice(price: number | string): number {
-  if (typeof price === 'number') return price
-  if (typeof price === 'string') {
-    // Handle range like "8.79-9.50" — take the first value
-    const first = price.split('-')[0]
-    const parsed = parseFloat(first)
-    return isNaN(parsed) ? 0 : parsed
-  }
-  return 0
 }
 
 export async function searchProducts(
@@ -91,12 +95,19 @@ export async function searchProducts(
       allProducts.push(...productList)
     }
 
-    return allProducts.map(p => ({
-      pid: p.id,
-      productNameEn: p.nameEn,
-      sellPrice: parseFloat(p.sellPrice) || 0,
-      productImage: p.bigImage,
-    }))
+    console.log(`CJ search "${keyword}" returned ${allProducts.length} products`)
+
+    return allProducts.map(p => {
+      const priceUSD = parseFloat(p.sellPrice) || 0
+      const priceINR = usdToInr(priceUSD)
+      return {
+        pid: p.id,
+        productNameEn: p.nameEn,
+        sellPrice: priceUSD,              // raw USD for reference
+        sellPriceINR: priceINR,           // INR for display in admin
+        productImage: p.bigImage,
+      }
+    })
   } catch (err) {
     console.error('searchProducts error:', err)
     return []
@@ -144,7 +155,6 @@ function parseImageUrls(
 ): string[] {
   const urls: string[] = []
 
-  // productImage is a JSON string array — parse it
   if (productImage) {
     try {
       const parsed = JSON.parse(productImage)
@@ -156,41 +166,47 @@ function parseImageUrls(
         }
       }
     } catch {
-      // Not JSON — might be a plain URL string
       if (productImage.startsWith('http')) {
         urls.push(productImage)
       }
     }
   }
 
-  // productImageSet is a single string URL — add if not duplicate
-  if (productImageSet && typeof productImageSet === 'string' && productImageSet.startsWith('http')) {
-    if (!urls.includes(productImageSet)) {
-      urls.push(productImageSet)
-    }
+  if (
+    productImageSet &&
+    typeof productImageSet === 'string' &&
+    productImageSet.startsWith('http') &&
+    !urls.includes(productImageSet)
+  ) {
+    urls.push(productImageSet)
   }
 
-  // bigImage fallback
-  if (bigImage && typeof bigImage === 'string' && bigImage.startsWith('http')) {
-    if (!urls.includes(bigImage)) {
-      urls.push(bigImage)
-    }
+  if (
+    bigImage &&
+    typeof bigImage === 'string' &&
+    bigImage.startsWith('http') &&
+    !urls.includes(bigImage)
+  ) {
+    urls.push(bigImage)
   }
 
   return urls
 }
 
-export async function importProductToDB(
-  cjProductId: string
-): Promise<Product> {
-  // Get product detail — variants are already inside it
+export async function importProductToDB(cjProductId: string): Promise<Product> {
   const product = await getProductById(cjProductId)
 
   const slug = generateSlug(product.productNameEn)
-  const costPrice = parseCJPrice(product.sellPrice)
-  const sellPrice = Math.round(costPrice * 3)
 
-  // Parse all image URLs correctly
+  // ✅ Convert USD → INR correctly
+  const costPriceUSD = parseCJPrice(product.sellPrice)
+  const costPriceINR = usdToInr(costPriceUSD)
+  const sellPriceINR = Math.round(costPriceINR * 3)
+
+  console.log(
+    `Price: $${costPriceUSD} USD → ₹${costPriceINR} INR cost → ₹${sellPriceINR} INR sell price`
+  )
+
   const imageUrls = parseImageUrls(
     product.productImage,
     product.productImageSet,
@@ -203,38 +219,38 @@ export async function importProductToDB(
     position: i,
   }))
 
-  // Use variants from product detail directly
-  // They are already embedded in the product/query response
-  const detailVariants = product.variants ?? []
+  console.log(`Importing "${product.productNameEn}" with ${images.length} images`)
 
-  // If no variants in detail, try separate variant endpoint
+  const detailVariants = product.variants ?? []
   let variants = detailVariants
   if (variants.length === 0) {
     variants = await getVariants(cjProductId)
   }
 
-  const mappedVariants = variants.map(v => ({
-    id: v.vid,
-    cj_variant_id: v.vid,
-    name: v.variantNameEn,
-    price: Math.round(parseCJPrice(v.variantSellPrice) * 3),
-  }))
+  const mappedVariants = variants.map(v => {
+    // ✅ Convert variant prices USD → INR too
+    const variantCostUSD = parseCJPrice(v.variantSellPrice)
+    const variantCostINR = usdToInr(variantCostUSD)
+    return {
+      id: v.vid,
+      cj_variant_id: v.vid,
+      name: v.variantNameEn,
+      price: Math.round(variantCostINR * 3), // 3x markup in INR
+    }
+  })
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Check if product with this slug already exists — generate unique slug if so
   const { data: existing } = await supabase
     .from('products')
     .select('id')
     .eq('slug', slug)
     .single()
 
-  const finalSlug = existing
-    ? `${slug}-${Date.now()}`
-    : slug
+  const finalSlug = existing ? `${slug}-${Date.now()}` : slug
 
   const { data, error } = await supabase
     .from('products')
@@ -242,8 +258,8 @@ export async function importProductToDB(
       name: product.productNameEn,
       slug: finalSlug,
       description: product.description ?? null,
-      price: sellPrice,
-      cost_price: costPrice,
+      price: sellPriceINR,       // ✅ INR sell price (3x markup)
+      cost_price: costPriceINR,  // ✅ INR cost price
       cj_product_id: product.pid,
       cj_variant_id: variants[0]?.vid ?? 'default',
       images,

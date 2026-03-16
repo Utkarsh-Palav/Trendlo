@@ -6,19 +6,12 @@ import { toggleProductActive, updateProductPrice, createDiscountCode } from '@/a
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 import type { Product } from '@/types'
 
-// interface CJSearchResult {
-//     pid: string
-//     productNameEn: string
-//     sellPrice: number
-//     productImageUrl: string
-// }
-
 interface CJSearchResult {
     pid: string
     productNameEn: string
-    sellPrice: number
+    sellPrice: number       // raw USD from CJ
+    sellPriceINR: number    // converted to INR — added this
     productImage: string
-    productImageSet?: Array<{ imageUrl: string }>
 }
 
 interface DiscountCode {
@@ -43,7 +36,6 @@ export default function ProductsAdminPage() {
     const [editingPrice, setEditingPrice] = useState<string | null>(null)
     const [priceInput, setPriceInput] = useState('')
 
-    // New discount code form
     const [newCode, setNewCode] = useState({
         code: '', type: 'percent' as 'percent' | 'flat',
         value: '', min_order: '', max_uses: '', ref_name: '',
@@ -64,10 +56,13 @@ export default function ProductsAdminPage() {
     async function searchCJ() {
         if (!cjSearch.trim()) return
         setCjLoading(true)
+        setCjResults([])
         try {
             const res = await fetch(`/api/cj/products?q=${encodeURIComponent(cjSearch)}`)
             const data = await res.json()
             setCjResults(data.products ?? [])
+        } catch (err) {
+            console.error('CJ search failed:', err)
         } finally {
             setCjLoading(false)
         }
@@ -82,8 +77,8 @@ export default function ProductsAdminPage() {
                 body: JSON.stringify({ cjProductId: pid }),
             })
             if (res.ok) {
-                setImportedIds(prev => new Set([...prev, pid]))
                 const data = await res.json()
+                setImportedIds(prev => new Set([...prev, pid]))
                 setProducts(prev => [data.product, ...prev])
             }
         } finally {
@@ -134,7 +129,12 @@ export default function ProductsAdminPage() {
 
             {/* CJ Import */}
             <div className="bg-white border border-[#E5E7EB] rounded-xl p-5">
-                <h2 className="text-[#111827] font-semibold text-base mb-4">Import from CJ Dropshipping</h2>
+                <h2 className="text-[#111827] font-semibold text-base mb-1">
+                    Import from CJ Dropshipping
+                </h2>
+                <p className="text-[#9CA3AF] text-xs mb-4">
+                    Prices shown in USD (CJ cost) and ₹ INR. Sell price = 3× cost in INR.
+                </p>
                 <div className="flex gap-2 mb-4">
                     <div className="relative flex-1">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
@@ -142,7 +142,7 @@ export default function ProductsAdminPage() {
                             value={cjSearch}
                             onChange={e => setCjSearch(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && searchCJ()}
-                            placeholder="Search CJ catalog (e.g. gadget, wireless, home)"
+                            placeholder="Search CJ catalog (e.g. earphone, lamp, speaker)"
                             className="w-full border border-[#E5E7EB] focus:border-[#FF6B35] rounded-lg
                 pl-9 pr-4 py-2.5 text-sm text-[#111827] outline-none transition-colors"
                         />
@@ -158,11 +158,21 @@ export default function ProductsAdminPage() {
                     </button>
                 </div>
 
+                {cjResults.length === 0 && !cjLoading && cjSearch && (
+                    <p className="text-[#9CA3AF] text-sm text-center py-4">
+                        No results found. Try a different keyword.
+                    </p>
+                )}
+
                 {cjResults.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                         {cjResults.map(p => {
                             const imported = importedIds.has(p.pid)
                             const importing = importingId === p.pid
+                            // If sellPriceINR is missing (old search), fallback to USD * 83.5 * 3
+                            const displayCost = p.sellPriceINR ?? Math.round(p.sellPrice * 83.5)
+                            const displaySell = Math.round(displayCost * 3)
+
                             return (
                                 <div key={p.pid} className="border border-[#E5E7EB] rounded-xl overflow-hidden">
                                     <div className="aspect-square bg-[#F8F7F4] relative">
@@ -176,12 +186,17 @@ export default function ProductsAdminPage() {
                                         )}
                                     </div>
                                     <div className="p-3">
-                                        <p className="text-[#111827] text-xs font-medium line-clamp-2 mb-1">
+                                        <p className="text-[#111827] text-xs font-medium line-clamp-2 mb-2">
                                             {p.productNameEn}
                                         </p>
-                                        <p className="text-[#9CA3AF] text-xs">Cost: ₹{Math.round(p.sellPrice)}</p>
-                                        <p className="text-[#FF6B35] text-xs font-medium">
-                                            Sell: ₹{Math.round(p.sellPrice * 3)}
+                                        <p className="text-[#9CA3AF] text-xs">
+                                            CJ cost: ${p.sellPrice.toFixed(2)} ≈ ₹{displayCost}
+                                        </p>
+                                        <p className="text-[#FF6B35] text-xs font-medium mt-0.5">
+                                            Your sell price: ₹{displaySell}
+                                        </p>
+                                        <p className="text-[#10B981] text-xs mt-0.5">
+                                            Profit: ₹{displaySell - displayCost} per sale
                                         </p>
                                         <button
                                             onClick={() => importProduct(p.pid)}
@@ -204,8 +219,11 @@ export default function ProductsAdminPage() {
 
             {/* Product catalog */}
             <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-[#E5E7EB]">
-                    <h2 className="text-[#111827] font-semibold text-base">Your catalog ({products.length})</h2>
+                <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+                    <h2 className="text-[#111827] font-semibold text-base">
+                        Your catalog ({products.length})
+                    </h2>
+                    <p className="text-[#9CA3AF] text-xs">Click price to edit</p>
                 </div>
                 {products.length === 0 ? (
                     <div className="p-8 text-center text-[#9CA3AF] text-sm">
@@ -217,8 +235,8 @@ export default function ProductsAdminPage() {
                             <thead>
                                 <tr className="bg-[#F8F7F4] border-b border-[#E5E7EB]">
                                     <th className="text-left px-4 py-3 text-[#9CA3AF] text-xs font-medium">Product</th>
-                                    <th className="text-left px-4 py-3 text-[#9CA3AF] text-xs font-medium">Price</th>
-                                    <th className="text-left px-4 py-3 text-[#9CA3AF] text-xs font-medium">Cost</th>
+                                    <th className="text-left px-4 py-3 text-[#9CA3AF] text-xs font-medium">Sell ₹</th>
+                                    <th className="text-left px-4 py-3 text-[#9CA3AF] text-xs font-medium">Cost ₹</th>
                                     <th className="text-left px-4 py-3 text-[#9CA3AF] text-xs font-medium">Margin</th>
                                     <th className="text-left px-4 py-3 text-[#9CA3AF] text-xs font-medium">Sold</th>
                                     <th className="text-left px-4 py-3 text-[#9CA3AF] text-xs font-medium">Active</th>
@@ -226,42 +244,58 @@ export default function ProductsAdminPage() {
                             </thead>
                             <tbody>
                                 {products.map(p => {
-                                    const margin = p.cost_price
+                                    const margin = p.cost_price && p.price > 0
                                         ? Math.round(((p.price - p.cost_price) / p.price) * 100)
                                         : 0
                                     return (
-                                        <tr key={p.id} className="border-b border-[#F3F4F6]">
+                                        <tr key={p.id} className="border-b border-[#F3F4F6] hover:bg-[#FAFAFA]">
                                             <td className="px-4 py-3">
-                                                <p className="text-[#111827] font-medium text-xs line-clamp-1">{p.name}</p>
+                                                <p className="text-[#111827] font-medium text-xs line-clamp-1 max-w-[200px]">
+                                                    {p.name}
+                                                </p>
                                             </td>
                                             <td className="px-4 py-3">
                                                 {editingPrice === p.id ? (
-                                                    <div className="flex gap-1">
+                                                    <div className="flex gap-1 items-center">
+                                                        <span className="text-[#9CA3AF] text-xs">₹</span>
                                                         <input
                                                             type="number"
                                                             value={priceInput}
                                                             onChange={e => setPriceInput(e.target.value)}
                                                             className="w-20 border border-[#FF6B35] rounded px-2 py-1 text-xs outline-none"
                                                             autoFocus
+                                                            onKeyDown={e => e.key === 'Enter' && handlePriceSave(p.id)}
                                                         />
                                                         <button
                                                             onClick={() => handlePriceSave(p.id)}
-                                                            className="text-[#10B981] text-xs px-2"
+                                                            className="text-[#10B981] text-xs px-1"
                                                         >
                                                             ✓
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setEditingPrice(null)}
+                                                            className="text-[#9CA3AF] text-xs px-1"
+                                                        >
+                                                            ✕
                                                         </button>
                                                     </div>
                                                 ) : (
                                                     <button
-                                                        onClick={() => { setEditingPrice(p.id); setPriceInput(String(p.price)) }}
-                                                        className="text-[#111827] text-xs hover:text-[#FF6B35] transition-colors"
+                                                        onClick={() => {
+                                                            setEditingPrice(p.id)
+                                                            setPriceInput(String(p.price))
+                                                        }}
+                                                        className="text-[#111827] text-xs hover:text-[#FF6B35] transition-colors font-medium"
                                                     >
-                                                        ₹{p.price}
+                                                        ₹{p.price.toLocaleString('en-IN')}
                                                     </button>
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-[#9CA3AF] text-xs">
-                                                {p.cost_price ? `₹${p.cost_price}` : '—'}
+                                                {p.cost_price
+                                                    ? `₹${p.cost_price.toLocaleString('en-IN')}`
+                                                    : '—'
+                                                }
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className={`text-xs font-medium ${getMarginColor(margin)}`}>
@@ -277,7 +311,8 @@ export default function ProductsAdminPage() {
                                                     aria-label="Toggle active"
                                                 >
                                                     <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white
-                            transition-transform ${p.active ? 'translate-x-5' : 'translate-x-0.5'}`}
+                            transition-transform
+                            ${p.active ? 'translate-x-5' : 'translate-x-0.5'}`}
                                                     />
                                                 </button>
                                             </td>
@@ -294,7 +329,6 @@ export default function ProductsAdminPage() {
             <div className="bg-white border border-[#E5E7EB] rounded-xl p-5">
                 <h2 className="text-[#111827] font-semibold text-base mb-4">Discount codes</h2>
 
-                {/* Create form */}
                 <div className="bg-[#F8F7F4] rounded-xl p-4 mb-4">
                     <p className="text-[#374151] text-sm font-medium mb-3 flex items-center gap-1">
                         <Plus size={14} className="text-[#FF6B35]" />
@@ -353,8 +387,11 @@ export default function ProductsAdminPage() {
                     </button>
                 </div>
 
-                {/* Codes table */}
-                {discountCodes.length > 0 && (
+                {discountCodes.length === 0 ? (
+                    <p className="text-[#9CA3AF] text-sm text-center py-4">
+                        No discount codes yet — create one above
+                    </p>
+                ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
