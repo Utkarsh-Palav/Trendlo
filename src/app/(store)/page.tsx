@@ -26,7 +26,7 @@ export default async function HomePage() {
               Discover the coolest trending gadgets and lifestyle products,
               shipped straight to your door.
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-3 sm:flex-row text-white">
               <Link
                 href="/products"
                 className="inline-flex items-center justify-center rounded-lg bg-brand px-8 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-brand-dark"

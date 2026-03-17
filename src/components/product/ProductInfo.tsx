@@ -1,147 +1,201 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { Check } from "lucide-react";
-import type { Product } from "@/types";
-import { formatINR } from "@/utils/currency";
-import { ReviewStars } from "./ReviewStars";
-import { VariantSelector } from "./VariantSelector";
-import { CountdownTimer } from "@/components/shared/CountdownTimer";
-import { useCart } from "@/hooks/useCart";
+import { useState } from 'react'
+import { Check, Shield, Truck, RotateCcw } from 'lucide-react'
+import type { Product } from '@/types'
+import { formatINR } from '@/utils/currency'
+import { ReviewStars } from './ReviewStars'
+import { VariantSelector } from './VariantSelector'
+import { CountdownTimer } from '@/components/shared/CountdownTimer'
+import { useCart } from '@/hooks/useCart'
 
 interface ProductInfoProps {
-  product: Product;
+  product: Product
 }
 
 export function ProductInfo({ product }: ProductInfoProps) {
+  const variants = product.variants as Array<{
+    id: string
+    cj_variant_id: string
+    name: string
+    price: number
+  }>
+
   const [selectedVariantId, setSelectedVariantId] = useState(
-    product.variants[0]?.id,
-  );
-  const [quantity, setQuantity] = useState(1);
-  const { addItem } = useCart();
+    variants[0]?.id ?? product.cj_variant_id
+  )
+  const [quantity, setQuantity] = useState(1)
+  const [added, setAdded] = useState(false)
+  const { addItem, openCart } = useCart()
 
-  const salePrice = product.price;
-  const originalPrice = product.compare_price ?? product.price * 1.3;
-  const savings = Math.max(originalPrice - salePrice, 0);
-  const savingsPct =
-    originalPrice > 0 ? Math.round((savings / originalPrice) * 100) : 0;
+  const images = product.images as Array<{ url: string; alt?: string }>
 
-  const handleAddToCart = () => {
-    const variant =
-      product.variants.find((v) => v.id === selectedVariantId) ??
-      product.variants[0];
+  const salePrice = product.price
+  const originalPrice = product.compare_price ?? 0
+  const hasDiscount = originalPrice > salePrice && originalPrice > 0
+  const savings = hasDiscount ? originalPrice - salePrice : 0
+  const savingsPct = hasDiscount
+    ? Math.round((savings / originalPrice) * 100)
+    : 0
+
+  function handleAddToCart() {
+    const variant = variants.find(v => v.id === selectedVariantId) ?? variants[0]
     addItem({
       productId: product.id,
-      variantId: variant?.id ?? product.cj_variant_id,
+      variantId: variant?.cj_variant_id ?? product.cj_variant_id,
       name: product.name,
-      image: product.images[0]?.url,
+      image: images[0]?.url ?? '',
       price: salePrice,
       qty: quantity,
-    });
-  };
+    })
+    setAdded(true)
+    openCart()
+    setTimeout(() => setAdded(false), 2000)
+  }
+
+  function handleBuyNow() {
+    handleAddToCart()
+  }
 
   return (
-    <div className="space-y-4 rounded-2xl bg-white p-5 shadow-sm lg:sticky lg:top-24">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold text-gray-900">
+    <div className="space-y-5 rounded-2xl bg-white border border-[#E5E7EB] p-5 lg:sticky lg:top-24">
+
+      {/* Name + stars */}
+      <div className="space-y-1.5">
+        <h1 className="text-xl font-semibold text-[#111827] leading-snug">
           {product.name}
         </h1>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-[#9CA3AF]">
           <ReviewStars rating={4.8} />
           <span>·</span>
           <span>127 reviews</span>
         </div>
       </div>
 
+      {/* Price */}
       <div className="space-y-1">
         <div className="flex items-baseline gap-3">
-          <span className="text-3xl font-bold text-brand">
+          <span className="text-3xl font-bold text-[#FF6B35]">
             {formatINR(salePrice)}
           </span>
-          <span className="text-sm text-gray-400 line-through">
-            {formatINR(originalPrice)}
-          </span>
+          {hasDiscount && (
+            <span className="text-sm text-[#9CA3AF] line-through">
+              {formatINR(originalPrice)}
+            </span>
+          )}
         </div>
-        {savings > 0 && (
-          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-500">
+        {hasDiscount && savings > 0 && (
+          <span className="inline-flex items-center rounded-full
+            bg-[#ECFDF5] px-2.5 py-0.5 text-xs font-semibold text-[#10B981]">
             Save {formatINR(savings)} ({savingsPct}% off)
           </span>
         )}
       </div>
 
-      <ul className="space-y-1 text-xs text-gray-700">
+      {/* Bullet points */}
+      <ul className="space-y-1.5">
         {[
-          "Best‑selling pick for this week",
-          "Ready‑to‑ship from trusted supplier",
-          "Perfect for gifting and daily use",
-          "COD available in most pincodes",
-        ].map((bullet) => (
-          <li key={bullet} className="flex items-start gap-2">
-            <Check className="mt-0.5 h-3 w-3 text-brand" />
+          'Best-selling pick this week',
+          'Ready to ship from trusted supplier',
+          'Perfect for gifting and daily use',
+          'Free delivery on all prepaid orders',
+        ].map(bullet => (
+          <li key={bullet} className="flex items-start gap-2 text-xs text-[#374151]">
+            <Check size={13} className="mt-0.5 flex-shrink-0 text-[#FF6B35]" />
             <span>{bullet}</span>
           </li>
         ))}
       </ul>
 
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-gray-700">Variant</p>
-        <VariantSelector
-          variants={product.variants}
-          selectedId={selectedVariantId}
-          onChange={setSelectedVariantId}
-        />
-      </div>
+      {/* Variant selector */}
+      {variants.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-[#374151]">
+              Select variant
+            </p>
+            <p className="text-xs text-[#9CA3AF]">
+              {variants.length} options
+            </p>
+          </div>
+          <VariantSelector
+            variants={variants}
+            selectedId={selectedVariantId}
+            onChange={setSelectedVariantId}
+          />
+        </div>
+      )}
 
+      {/* Quantity */}
       <div className="space-y-2">
-        <p className="text-xs font-medium text-gray-700">Quantity</p>
-        <div className="inline-flex items-center rounded-full border border-brand px-2 py-1 text-xs">
+        <p className="text-xs font-medium text-[#374151]">Quantity</p>
+        <div className="inline-flex items-center border border-[#E5E7EB]
+          rounded-lg overflow-hidden">
           <button
             type="button"
-            className="h-7 w-7 rounded-full text-center text-base text-brand"
-            onClick={() =>
-              setQuantity((q) => (q > 1 ? q - 1 : 1))
-            }
+            onClick={() => setQuantity(q => Math.max(q - 1, 1))}
+            className="w-9 h-9 flex items-center justify-center
+              text-[#374151] hover:bg-[#F8F7F4] transition-colors text-lg"
           >
             −
           </button>
-          <span className="mx-2 w-6 text-center text-sm font-medium">
+          <span className="w-10 text-center text-sm font-medium text-[#111827]">
             {quantity}
           </span>
           <button
             type="button"
-            className="h-7 w-7 rounded-full text-center text-base text-brand"
-            onClick={() => setQuantity((q) => q + 1)}
+            onClick={() => setQuantity(q => Math.min(q + 1, 10))}
+            className="w-9 h-9 flex items-center justify-center
+              text-[#374151] hover:bg-[#F8F7F4] transition-colors text-lg"
           >
             +
           </button>
         </div>
       </div>
 
-      <CountdownTimer minutes={45} />
+      {/* Countdown timer */}
+      <CountdownTimer />
 
-      <div className="space-y-2">
+      {/* CTA buttons */}
+      <div className="space-y-2.5">
         <button
           type="button"
-          className="w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark"
-          onClick={handleAddToCart}
+          onClick={handleBuyNow}
+          className="w-full rounded-xl bg-[#FF6B35] px-4 py-3.5 text-sm
+            font-semibold text-white transition-colors hover:bg-[#E55A24]
+            active:scale-[0.98]"
         >
           Buy Now
         </button>
         <button
           type="button"
-          className="w-full rounded-lg border border-brand bg-white px-4 py-2.5 text-sm font-semibold text-brand transition hover:bg-[#FFF3EE]"
           onClick={handleAddToCart}
+          className="w-full rounded-xl border border-[#FF6B35] bg-white
+            px-4 py-3.5 text-sm font-semibold text-[#FF6B35] transition-colors
+            hover:bg-[#FFF3EE] active:scale-[0.98]"
         >
-          Add to Cart
+          {added ? 'Added to Cart ✓' : 'Add to Cart'}
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-light-border pt-3 text-[11px] text-gray-500">
-        <span>Free delivery on all prepaid orders</span>
-        <span>·</span>
-        <span>7‑day easy returns</span>
+      {/* Trust row */}
+      <div className="grid grid-cols-3 gap-2 border-t border-[#E5E7EB] pt-4">
+        {[
+          { icon: Shield, label: 'Secure Payment' },
+          { icon: Truck, label: 'Free Delivery' },
+          { icon: RotateCcw, label: '7-Day Returns' },
+        ].map(({ icon: Icon, label }) => (
+          <div key={label} className="flex flex-col items-center gap-1 text-center">
+            <Icon size={16} className="text-[#9CA3AF]" />
+            <span className="text-[10px] text-[#9CA3AF] leading-tight">
+              {label}
+            </span>
+          </div>
+        ))}
       </div>
+
     </div>
-  );
+  )
 }
 
+export default ProductInfo
